@@ -29,6 +29,11 @@ rag-healthcare-assistant/
 - Python 3.13+
 - Docker
 
+> **Note:** On first run, the sentence-transformer model will be downloaded automatically. This may take a minute or two depending on your connection. Subsequent starts will use the cached model and load instantly.
+
+The API will be available at `http://localhost:8000`.
+Interactive docs: `http://localhost:8000/docs`
+
 ---
 
 ## Docker Setup
