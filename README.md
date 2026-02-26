@@ -27,9 +27,10 @@ rag-healthcare-assistant/
 ## Requirements
 
 - Python 3.13+
-- Docker
+- Docker 20+
+- Internet connection
 
-> **Note:** On first run, the sentence-transformer model will be downloaded automatically. This may take a minute or two depending on your connection. Subsequent starts will use the cached model and load instantly.
+> **Note:** On first run, the sentence-transformer model will be downloaded. This may take a minute or two depending on your connection.
 
 The API will be available at `http://localhost:8000`.
 Interactive docs: `http://localhost:8000/docs`
@@ -41,7 +42,7 @@ Interactive docs: `http://localhost:8000/docs`
 ### Build the image
 
 ```bash
-docker build -t healthbot .
+ DOCKER_BUILDKIT=1 docker build -t healthbot .
 ```
 
 ### Run the container
@@ -178,12 +179,14 @@ TBD
 
 ## Design Notes
 
-**Scalability & Modularity**  
+**Scalability & Modularity**
 
-**Future Improvements**  
+**Future Improvements**
+
+- when maximizing semantic accuracy and capturing fine-grained nuances in text is more critical than storage space or inference speed higher dimension is preferred.
 
 ---
 
 ## AI Usage Disclosure
 
-This project was built with the assistance of Claude (Anthropic). All code and written content was reviewed, understood, and verified by the submitter.
+- Base structure of this readme file has been generated via AI, then modified as needed to fit the project scope.
