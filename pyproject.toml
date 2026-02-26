@@ -1,0 +1,14 @@
+[project]
+name = "healthbot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.18.4",
+    "faiss-cpu>=1.13.2",
+    "fastapi>=0.133.0",
+    "sentence-transformers>=5.2.3",
+    "sqlalchemy>=2.0.47",
+    "uvicorn>=0.41.0",
+]
