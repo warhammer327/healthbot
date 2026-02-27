@@ -82,9 +82,12 @@ All endpoints require the header:
 
 ```
 X-API-Key: abcd
+
 ```
 
-> kb_language is the language of knowledgebase.
+```
+Parameter kb_language indicates the ingested language of knowledgebase.
+```
 
 ---
 
