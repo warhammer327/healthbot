@@ -110,6 +110,8 @@ curl -X POST http://localhost:8000/v1/ingest  \
 
 ---
 
+> kb_language is the language of knowledgebase.
+
 ### `POST /retrieve`
 
 Submit a query in English or Japanese. Returns the top-3 most relevant documents with similarity scores.
@@ -118,7 +120,7 @@ Submit a query in English or Japanese. Returns the top-3 most relevant documents
 
 ```bash
 # English output 
-curl "http://localhost:8000/v1/retrieve?query=What+is+a+fever" \
+curl "http://localhost:8000/v1/retrieve?query=What+is+a+fever&kb_language=en&output_language=en" \
   -H "X-API-Key: abcd"
 ```
 
@@ -136,7 +138,7 @@ curl "http://localhost:8000/v1/retrieve?query=What+is+a+fever" \
 
 ```bash
 # Japanese output
-curl "http://localhost:8000/v1/retrieve?query=What+is+a+fever&output_language=ja" \
+curl "http://localhost:8000/v1/retrieve?query=What+is+a+fever&kb_language=en&output_language=ja" \
   -H "X-API-Key: abcd"
 ```
 
@@ -161,7 +163,7 @@ Combines retrieved documents with the query to produce a mock LLM response. Resp
 
 ```bash
 # English output 
-curl "http://localhost:8000/v1/generate?query=What+is+a+fever" \
+curl "http://localhost:8000/v1/generate?query=What+is+a+fever&kb_language=en" \
   -H "X-API-Key: abcd"
 ```
 
@@ -175,7 +177,7 @@ curl "http://localhost:8000/v1/generate?query=What+is+a+fever" \
 
 ```bash
 # Japanese output
- curl -G "http://localhost:8000/v1/generate" \
+ curl -G "http://localhost:8000/v1/generate?kb_language=en" \
   --data-urlencode "query=発熱とは何ですか" \
   -H "X-API-Key: abcd"
 ```
