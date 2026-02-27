@@ -7,19 +7,44 @@ A FastAPI backend for a bilingual (English/Japanese) RAG-powered assistant.
 ## Project Structure
 
 ```
-rag-healthcare-assistant/
-├── app/
-│   ├── __init__.py
-│   ├── main.py          # FastAPI app entry point + all route definitions
-│   ├── auth.py          # X-API-Key header authentication
-│   ├── embeddings.py    # FAISS index management + sentence-transformers
-│   └── translate.py     # Bilingual translation (googletrans)
-├── .github/
-│   └── workflows/
-│       └── ci.yml       # GitHub Actions CI/CD pipeline
+healthbot
+├── app
+│   ├── core
+│   ├── dependencies.py
+│   ├── __init__.py
+│   ├── main.py
+│   ├── middleware
+│   │   ├── authenticate.py
+│   │   └── __init__.py
+│   ├── routes
+│   │   ├── __init__.py
+│   │   └── v1
+│   │       ├── generate.py
+│   │       ├── ingest.py
+│   │       ├── __init__.py
+│   │       └── retrieve.py
+│   ├── schemas
+│   │   ├── base_response.py
+│   │   ├── generate.py
+│   │   ├── ingest.py
+│   │   ├── __init__.py
+│   │   └── retrieve.py
+│   ├── services
+│   │   ├── generation_service.py
+│   │   ├── ingestion_service.py
+│   │   └── retrieval_service.py
+│   └── utils
+│       └── translate.py
+├── data
+│   └── answers.txt
+├── docker-compose.yml
 ├── Dockerfile
+├── __pycache__
+│   └── main.cpython-313.pyc
+├── pyproject.toml
+├── README.md
 ├── requirements.txt
-└── README.md
+└── uv.lock
 ```
 
 ---
@@ -27,29 +52,27 @@ rag-healthcare-assistant/
 ## Requirements
 
 - Python 3.13+
-- Docker 20+
+- Docker 23+
+- Sample knowledge source is at project-root/data/answers.txt
 - Internet connection
 
-> **Note:** On first run, the sentence-transformer model will be downloaded. This may take a minute or two depending on your connection.
+> **Note:** On first run, the sentence-transformer model will be downloaded. This may take some time depending on internet connection.
 
 The API will be available at `http://localhost:8000`.
 Interactive docs: `http://localhost:8000/docs`
 
 ---
 
-## Docker Setup
-
-### Build the image
+## Start
 
 ```bash
- DOCKER_BUILDKIT=1 docker build -t healthbot .
+docker compose up
 ```
 
-### Run the container
+The API will be available at `http://localhost:8000`.  
+Swagger docs at `http://localhost:8000/docs`.
 
-```bash
-docker run -e API_KEY=your-secret-key -p 8000:8000 healthbot
-```
+All requests require the header `X-API-Key: abcd`. It is hardcoded at the moment, move it to env before deployment.
 
 ---
 
@@ -58,36 +81,30 @@ docker run -e API_KEY=your-secret-key -p 8000:8000 healthbot
 All endpoints require the header:
 
 ```
-X-API-Key: your-secret-key
+X-API-Key: abcd
 ```
 
 ---
 
 ### `POST /ingest`
 
-Upload a `.txt` document in English or Japanese. The app auto-detects the language, generates an embedding, and stores it in FAISS.
-
-**Request** — `multipart/form-data`
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `file` | `.txt` | Plain text document to ingest |
+Upload a `.txt` document, it generates an embedding, and stores it in FAISS.
 
 **Example**
 
 ```bash
-curl -X POST http://localhost:8000/ingest \
-  -H "X-API-Key: your-secret-key" \
-  -F "file=@guidelines.txt"
+curl -X POST http://localhost:8000/v1/ingest  \
+  -H "X-API-Key: abcd"  \
+  -F "file=@{project-root-addresss}/data/answers.txt"
 ```
 
 **Response**
 
 ```json
 {
-  "message": "Ingested successfully",
-  "language": "en",
-  "doc_id": 0
+  "success":true,
+  "error":null,
+  "filename":"answers.txt"
 }
 ```
 
@@ -97,34 +114,39 @@ curl -X POST http://localhost:8000/ingest \
 
 Submit a query in English or Japanese. Returns the top-3 most relevant documents with similarity scores.
 
-**Request** — `application/json`
-
-```json
-{
-  "query": "What are the latest recommendations for Type 2 diabetes management?"
-}
-```
-
 **Example**
 
 ```bash
-curl -X POST http://localhost:8000/retrieve \
-  -H "X-API-Key: your-secret-key" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "Type 2 diabetes management"}'
+# English output 
+curl "http://localhost:8000/v1/retrieve?query=What+is+a+fever" \
+  -H "X-API-Key: abcd"
 ```
-
-**Response**
 
 ```json
 {
-  "results": [
-    {
-      "doc_id": 0,
-      "text": "...",
-      "language": "en",
-      "score": 0.91
-    }
+  "success":true,
+  "error":null,
+  "results":[
+    {"rank":2,"score":3.7711,"chunk":"What is the definition of a fever in an adult?\nA body temperature of 100.4°F (38°C) or higher."},
+    {"rank":2,"score":13.2865,"chunk":"What are the classic symptoms of a myocardial infarction (heart attack) in men?\nChest pain or pressure, pain radiating to the left arm or jaw, shortness of breath, and diaphoresis (sweating)."},
+    {"rank":3,"score":14.5788,"chunk":"What does a \"pulse oximeter\" measure?\nThe oxygen saturation level (SpO2) in the blood, indicating how well oxygen is being delivered to the body."}
+  ]
+}
+```
+
+```bash
+# Japanese output
+curl "http://localhost:8000/v1/retrieve?query=What+is+a+fever&output_language=ja" \
+  -H "X-API-Key: abcd"
+```
+
+```json
+{"success":true,
+  "error":null,
+  "results":[
+    {"rank":1,"score":3.7711,"chunk":"成人の発熱の定義は何ですか?\n体温が38℃以上であること。"},
+    {"rank":2,"score":13.2865,"chunk":"男性の心筋梗塞（心臓発作）の典型的な症状は何ですか?\n胸の痛みや圧迫感、左腕や顎に広がる痛み、息切れ、発汗（発汗）。"},
+    {"rank":3,"score":14.5788,"chunk":"「パルスオキシメーター」は何を測定するのですか？\n血液中の酸素飽和度 (SpO2) は、酸素が体にどの程度届けられているかを示します。"}
   ]
 }
 ```
@@ -133,60 +155,44 @@ curl -X POST http://localhost:8000/retrieve \
 
 ### `POST /generate`
 
-Combines retrieved documents with the query to produce a mock LLM response. Responds in the same language as the query. Optionally translates output.
-
-**Request** — `application/json`
-
-```json
-{
-  "query": "2型糖尿病の管理について教えてください",
-  "output_language": "en"
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `query` | string | Yes | Your question in EN or JA |
-| `output_language` | `"en"` or `"ja"` | No | Force output language (defaults to query language) |
+Combines retrieved documents with the query to produce a mock LLM response. Responds in the same language as the query.
 
 **Example**
 
 ```bash
-curl -X POST http://localhost:8000/generate \
-  -H "X-API-Key: your-secret-key" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "diabetes treatment", "output_language": "ja"}'
+# English output 
+curl "http://localhost:8000/v1/generate?query=What+is+a+fever" \
+  -H "X-API-Key: abcd"
 ```
-
-**Response**
 
 ```json
 {
-  "query": "diabetes treatment",
-  "language_detected": "en",
-  "output_language": "ja",
-  "response": "糖尿病の治療に関して、以下の情報が見つかりました：..."
+  "success":true,
+  "error":null,
+  "response":"Based on the available medical guidelines:\n\nWhat is the definition of a fever in an adult?\nA body temperature of 100.4°F (38°C) or higher.\nWhat are the classic symptoms of a myocardial infarction (heart attack) in men?\nChest pain or pressure, pain radiating to the left arm or jaw, shortness of breath, and diaphoresis (sweating).\nWhat does a \"pulse oximeter\" measure?\nThe oxygen saturation level (SpO2) in the blood, indicating how well oxygen is being delivered to the body.\n\nIn summary, the retrieved information addresses your query about: What is a fever"
+}
+```
+
+```bash
+# Japanese output
+ curl -G "http://localhost:8000/v1/generate" \
+  --data-urlencode "query=発熱とは何ですか" \
+  -H "X-API-Key: abcd"
+```
+
+```json
+{
+  "success":true,
+  "error":null,
+  "response":"利用可能な医療ガイドラインに基づいて:\n\n成人の発熱の定義は何ですか?\n体温が38℃以上であること。\n男性の心筋梗塞（心臓発作）の典型的な症状は何ですか?\n胸の痛みや圧迫感、左腕や顎に広がる痛み、息切れ、発汗（発汗）。\n「パルスオキシメーター」は何を測定するのですか？\n血液中の酸素飽和度 (SpO2) は、酸素が体にどの程度届けられているかを示します。\n\n要約すると、取得された情報は、「発熱とは何か」という質問に答えます。"
 }
 ```
 
 ---
 
-## CI/CD (GitHub Actions)
+## Notes
 
-TBD
-
----
-
-## Design Notes
-
-**Scalability & Modularity**
-
-**Future Improvements**
-
-- when maximizing semantic accuracy and capturing fine-grained nuances in text is more critical than storage space or inference speed higher dimension is preferred.
-
----
-
-## AI Usage Disclosure
-
-- Base structure of this readme file has been generated via AI, then modified as needed to fit the project scope.
+- Data is stored **in-memory** — it resets on container restart. Re-ingest your file after restarting.
+- The `generate` endpoint uses a mock LLM response (no actual model call), it just wraps the retrieved chunks.
+- Supported output languages for `/retrieve`: `en`, `ja`.
+- The API key is hardcoded as `abcd` — move it to an environment variable before any real deployment.
