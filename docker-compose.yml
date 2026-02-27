@@ -1,0 +1,12 @@
+version: '3'
+services:
+  healthbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    develop:                    # Development configuration section
+      watch:                     # File watching configuration
+        - path: .               # Watch current directory for changes
+          action: rebuild       # When changes detected, rebuild the image
