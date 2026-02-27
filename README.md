@@ -84,6 +84,8 @@ All endpoints require the header:
 X-API-Key: abcd
 ```
 
+> kb_language is the language of knowledgebase.
+
 ---
 
 ### `POST /ingest`
@@ -109,8 +111,6 @@ curl -X POST http://localhost:8000/v1/ingest  \
 ```
 
 ---
-
-> kb_language is the language of knowledgebase.
 
 ### `POST /retrieve`
 
