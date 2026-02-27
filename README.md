@@ -195,9 +195,45 @@ curl "http://localhost:8000/v1/generate?query=What+is+a+fever&kb_language=en" \
 
 ---
 
-## Notes
+## Clarifications
 
 - Data is stored **in-memory** — it resets on container restart. Re-ingest your file after restarting.
 - The `generate` endpoint uses a mock LLM response (no actual model call), it just wraps the retrieved chunks.
 - Supported output languages for `/retrieve`: `en`, `ja`.
 - The API key is hardcoded as `abcd` — move it to an environment variable before any real deployment.
+
+---
+
+## Design notes
+
+### Scalability
+
+At current stage core constraint is the lack of persistence. All ingested data will be wiped on container or server restart. It will fall apart under horizontal scaling as there is no shared state between the two or more instance. Two most significant improvements can be:
+
+- Attaching a persistent vector database like weaviate, qdrant, etc.
+- Maintaining a sql database for session management.
+
+### Modularity
+
+The project at current stage has good Modularity for it's size. The separation of concerns across routes, services, schemas, middleware, and utilities follows FastAPI conventions cleanly, and the `RetrievalService`, `IngestionService`, and `GenerationService` trio means each responsibility is independently swappable.  The entire translation layer is also isolated.
+
+### LLM Integration
+
+The generate endpoint returns a mock response by concatenating retrieved chunks with a static template. Replacing it with a real LLM call (e.g., Anthropic, OpenAI). Another option would be using containerized Ollama locally, it would need good hardware though.
+
+### Technical debt
+
+- Hardcoded API key ("abcd") is a security risk and clear technical debt.
+- Secrets should be loaded from environment variables.
+- `docker-compose.yml` rebuilds the full image on any file change.
+- `SUPPORTED_LANGUAGES` is duplicated across generate.py and retrieve.py.
+
+### Improvement plans
+
+Alongside addressing technical debts, implementing these steps would be improve the project's quality.
+
+- Expand supported languages (minimal changes due to abstracted translation layer).
+- Add support for richer formats (PDF, DOCX) in ingestion.
+- Improve chunking strategies.
+- Add caching for repeated translations.
+- Implement unit and integration tests for safer evolution.
